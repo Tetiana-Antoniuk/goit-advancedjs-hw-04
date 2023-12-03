@@ -63,11 +63,6 @@ async function handlerSubmit(evt) {
     smoothScroll();
   } catch (error) {
     console.error('error', error);
-    iziToast.error({
-      title: 'Error',
-      message: 'Oops! Something went wrong! Try reloading the page!',
-      position: 'topRight',
-    });
   }
 }
 
