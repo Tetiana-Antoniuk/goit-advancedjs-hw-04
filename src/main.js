@@ -1,4 +1,6 @@
-import axios from 'axios';
+import { fetchImages } from './js/api-service';
+import { createMarkup } from './js/create-markup';
+import { smoothScroll } from './js/smooth-scroll';
 import iziToast from 'izitoast';
 import SimpleLightbox from 'simplelightbox';
 
@@ -19,6 +21,11 @@ async function handlerLoad() {
 
     if (page >= data.totalPages) {
       loadButton.classList.replace('load-more', 'load-more-hidden');
+      iziToast.info({
+        title: 'Info',
+        message: "We're sorry, but you've reached the end of search results.",
+        position: 'topRight',
+      });
     }
     lightbox.refresh();
     smoothScroll();
@@ -37,7 +44,16 @@ async function handlerSubmit(evt) {
 
   page = 1;
 
-  const searchInput = evt.currentTarget.elements.searchQuery.value;
+  const searchInput = evt.currentTarget.elements.searchQuery.value.trim();
+
+  if (!searchInput) {
+    iziToast.error({
+      title: 'Error',
+      message: 'Please enter a search query.',
+      position: 'topRight',
+    });
+    return;
+  }
 
   try {
     const data = await fetchImages(searchInput, page);
@@ -60,77 +76,9 @@ async function handlerSubmit(evt) {
       }
     }
     lightbox.refresh();
-    smoothScroll();
   } catch (error) {
     console.error('error', error);
   }
-}
-
-function smoothScroll() {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
-}
-
-async function fetchImages(searchInput, page) {
-  const API_KEY = '40948305-cf809bb8656872e1f12174930';
-  const BASE_URL = 'https://pixabay.com/api/';
-  const perPage = 40;
-
-  const url = `${BASE_URL}?key=${API_KEY}&q=${searchInput}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`;
-
-  try {
-    const response = await axios.get(url);
-    if (response.data && response.data.hits) {
-      return {
-        data: response.data.hits,
-        totalPages: Math.ceil(response.data.totalHits / perPage),
-      };
-    } else {
-      console.error('Invalid response format:', response);
-      throw new Error('Invalid response format');
-    }
-  } catch (error) {
-    iziToast.error({
-      title: 'Error',
-      message: 'Oops! Something went wrong! Try reloading the page!',
-      position: 'topRight',
-    });
-    throw error;
-  }
-}
-
-function createMarkup(data) {
-  const { data: images } = data;
-  return images
-    .map(
-      ({
-        webformatURL,
-        largeImageURL,
-        tags,
-        likes,
-        views,
-        comments,
-        downloads,
-      }) =>
-        `<div class="photo-card">
-          <a class="photo-card__link" href="${largeImageURL}">
-            <img class="photo-card__image" src="${webformatURL}" alt="${tags}" loading="lazy" />
-            <div class="info">
-              <p class="info-item"><b>Likes</b> <span class="info-item__wrapper">${likes}</span></p>
-              <p class="info-item"><b>Views</b> <span class="info-item__wrapper">${views}</span></p>
-              <p class="info-item"><b>Comments</b> <span class="info-item__wrapper">${comments}</span></p>
-              <p class="info-item"><b>Downloads</b> <span class="info-item__wrapper">${downloads}</span></p>
-            </div>
-          </a>
-        </div>`
-    )
-    .join('');
 }
 
 const lightbox = new SimpleLightbox('.gallery a');
